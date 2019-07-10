@@ -1,45 +1,25 @@
 <?php
-if ( !defined('ABSPATH') )
+if ( !defined('IN_MYBB') )
 {
 	exit;
 }
 
-class PWAMPTranscodingCommon
+class PWAMP_TranscodingCommon
 {
 	protected $style;
 	protected $home_url;
-	protected $page_type;
 	protected $themes_url;
-	protected $plugins_url;
 	protected $viewport_width;
 	protected $permalink;
 	protected $page_url;
 	protected $canonical;
 
 
-	public function __construct()
-	{
-	}
-
-	public function __destruct()
-	{
-	}
-
-
-	protected function init($home_url, $data)
+	public function __construct($home_url, $data)
 	{
 		$this->style = '.fixed-height-container{position:relative;width:100%;height:300px}amp-img.contain img{object-fit:contain}.revert{all:revert;display:inline}';
 
 		$this->home_url = $home_url;
-
-		if ( !empty($data['page_type']) && is_string($data['page_type']) )
-		{
-			$this->page_type = $data['page_type'];
-		}
-		else
-		{
-			$this->page_type = '';
-		}
 
 		if ( !empty($data['themes_url']) && is_string($data['themes_url']) )
 		{
@@ -48,15 +28,6 @@ class PWAMPTranscodingCommon
 		else
 		{
 			$this->themes_url = '';
-		}
-
-		if ( !empty($data['plugins_url']) && is_string($data['plugins_url']) )
-		{
-			$this->plugins_url = $data['plugins_url'];
-		}
-		else
-		{
-			$this->plugins_url = '';
 		}
 
 		if ( !empty($data['viewport_width']) && is_string($data['viewport_width']) )
@@ -92,22 +63,40 @@ class PWAMPTranscodingCommon
 		}
 		else
 		{
-			$canonical = preg_replace('/((\?)|(&(amp;)?))(amp|desktop)(=1)?$/im', '', $this->page_url);
-			$canonical .= ( strpos($canonical, '?') !== false ) ? '&desktop=1' : '?desktop=1';
+			$canonical = preg_replace('/((\?)|(&(amp;)?))(amp|desktop)$/im', '', $this->page_url);
+			$canonical .= ( strpos($canonical, '?') !== false ) ? '&desktop' : '?desktop';
 			$this->canonical = htmlspecialchars($canonical);
 		}
 	}
 
-
-	protected function get_style()
+	public function __destruct()
 	{
-		if ( !empty($this->style_list[$this->page_type]) )
+	}
+
+
+	protected function get_style(&$page)
+	{
+		if ( empty($this->style_list) || empty($this->themes_url) )
 		{
-			$this->style .= $this->style_list[$this->page_type];
+			return;
 		}
-		elseif ( !empty($this->style_list['default']) )
+
+		$pattern = str_replace(array('/', '.'), array('\/', '\.'), $this->themes_url);
+		if ( preg_match_all('/<link\b([^>]*)\s*?\/?>/iU', $page, $matches) )
 		{
-			$this->style .= $this->style_list['default'];
+			foreach ( $matches[1] as $key => $value )
+			{
+				if ( preg_match('/ type=(("text\/css")|(\'text\/css\'))/i', $value) && preg_match('/ rel=(("stylesheet")|(\'stylesheet\'))/i', $value) && preg_match('/ href=(("([^"]*)")|(\'([^\']*)\'))/i', $value, $match) )
+				{
+					$key = !empty($match[2]) ? $match[3] : $match[5];
+					$key = preg_replace('/^' . $pattern . '/im', '', $key);
+
+					if ( !empty($this->style_list[$key]) )
+					{
+						$this->style .= $this->style_list[$key];
+					}
+				}
+			}
 		}
 	}
 
@@ -270,32 +259,11 @@ class PWAMPTranscodingCommon
 
 
 		/*
-			<a></a>
-		*/
-		// The attribute 'alt' may not appear in tag 'a'.
-		$page = preg_replace('/<a\b([^>]*) alt=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<a${1}${5}>', $page);
-
-
-		/*
-			<area/>
-		*/
-		// The tag 'area' is disallowed.
-		$page = preg_replace('/<area\b([^>]*)\s*?\/?>/iU', '', $page);
-
-
-		/*
-			<audio></audio>
-		*/
-		// The tag 'audio' may only appear as a descendant of tag 'noscript'. Did you mean 'amp-audio'?
-		$page = preg_replace('/<audio\b([^>]*)>/i', '<amp-audio${1}>', $page);
-
-
-		/*
 			<body></body>
 		*/
 		// Service Workers
 		$pattern = str_replace(array('/', '.'), array('\/', '\.'), $this->home_url);
-		if ( preg_match('/^' . $pattern . '\/(index\.php)?(\?amp(=1)?)?$/im', $this->page_url) )
+		if ( preg_match('/^' . $pattern . '\/(index\.php)?(\?amp)?$/im', $this->page_url) )
 		{
 			$serviceworker = '<amp-install-serviceworker
 	src="' . $this->home_url . '/' . ( !empty($this->permalink) ? 'pwamp-sw-js' : '?pwamp-sw-js' ) . '"
@@ -313,53 +281,6 @@ class PWAMPTranscodingCommon
 
 			$page = preg_replace('/<\/body>/i', $viewport_width . "\n" . '</body>', $page, 1);
 		}
-
-		// Pixel
-		$pattern = '/<noscript><img height="1" width="1".* src="([^"]+)".*\/><\/noscript>/isU';
-		while ( preg_match($pattern, $page, $match) )
-		{
-			$page = preg_replace('/<\/body>/i', '<amp-pixel src="' . $match[1] . '" layout="nodisplay"></amp-pixel>' . "\n" . '</body>', $page, 1);
-			$page = preg_replace($pattern, '', $page, 1);
-		}
-
-
-		/*
-			<canvas></canvas>
-		*/
-		// The tag 'canvas' is disallowed.
-		$page = preg_replace('/<canvas\b[^>]*>.*<\/canvas>/isU', '', $page);
-
-
-		/*
-			<col/>
-		*/
-		// The attribute 'width' may not appear in tag 'col'.
-		$page = preg_replace('/<col\b([^>]*) width=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?\/?>/iU', '<col${1}${5} />', $page);
-
-
-		/*
-			<div></div>
-		*/
-		// The attribute 'name' may not appear in tag 'div'.
-		$page = preg_replace('/<div\b([^>]*) name=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<div${1}${5}>', $page);
-
-		// The attribute 'target' may not appear in tag 'div'.
-		$page = preg_replace('/<div\b([^>]*) target=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<div${1}${5}>', $page);
-
-
-		/*
-			<embed/>
-		*/
-		// The tag 'embed' is disallowed.
-		$page = preg_replace('/<embed\b([^>]*)\s*?\/?>/iU', '', $page);
-
-
-		/*
-			<font></font>
-		*/
-		// The tag 'font' is disallowed.
-		$page = preg_replace('/<font[^>]*>/i', '', $page);
-		$page = preg_replace('/<\/font>/i', '', $page);
 
 
 		/*
@@ -401,20 +322,6 @@ class PWAMPTranscodingCommon
 
 
 		/*
-			<head></head>
-		*/
-		$page = preg_replace('/^[\s\t]*<head>/im', '<head>', $page, 1);
-		$page = preg_replace('/^[\s\t]*<\/head>/im', '</head>', $page, 1);
-
-
-		/*
-			<hr/>
-		*/
-		// The attribute 'size' may not appear in tag 'hr'.
-		$page = preg_replace('/<hr\b([^>]*) size=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?\/?>/iU', '<hr${1}${5} />', $page);
-
-
-		/*
 			<html>
 		*/
 		// The attribute 'xml:lang' may not appear in tag 'html'.
@@ -423,69 +330,12 @@ class PWAMPTranscodingCommon
 		// The attribute 'xmlns' may not appear in tag 'html'.
 		$page = preg_replace('/<html\b([^>]*) xmlns=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<html${1}${5}>', $page);
 
-		// The attribute 'xmlns:fb' may not appear in tag 'html'.
-		$page = preg_replace('/<html\b([^>]*) xmlns:fb=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<html${1}${5}>', $page);
-
-		// The attribute 'xmlns:og' may not appear in tag 'html'.
-		$page = preg_replace('/<html\b([^>]*) xmlns:og=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<html${1}${5}>', $page);
-
 		$page = preg_replace('/<html\b([^>]*)>/i', '<html amp${1}>', $page, 1);
-
-
-		/*
-			<icon></icon>
-		*/
-		$page = preg_replace('/<icon class="([^"]+)"><\/icon>/i', '<div class="${1}"></div>', $page);
-
-
-		/*
-			<iframe></iframe>
-		*/
-		$page = preg_replace('/<iframe\b([^>]*) src=(("[^"]*")|(\'[^\']*\'))([^>]*) data-lazy-src=(("([^"]*)")|(\'([^\']*)\'))([^>]*)\s*?\/?>/iU', '<iframe${1} src="${8}${10}"${5}${11} />', $page);
-
-		// The tag 'iframe' may only appear as a descendant of tag 'noscript'. Did you mean 'amp-iframe'?
-		$page = preg_replace('/<iframe\b([^>]*)>/i', '<amp-iframe${1}>', $page);
-
-		// Invalid URL protocol 'http:' for attribute 'src' in tag 'amp-iframe'.
-		$page = preg_replace('/<amp-iframe\b([^>]*) src=(("http:\/\/([^"]*)")|(\'http:\/\/([^\']*)\'))([^>]*)>/i', '<amp-iframe${1} src="https://${4}${6}"${7}>', $page);
-
-		// The attribute 'align' may not appear in tag 'amp-iframe'.
-		$page = preg_replace('/<amp-iframe\b([^>]*) align=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<amp-iframe${1}${5}>', $page);
-
-		// The attribute 'allowtransparency' in tag 'amp-iframe' is set to the invalid value 'true'.
-		$page = preg_replace('/<amp-iframe\b([^>]*) allowtransparency=(("true")|(\'true\'))([^>]*)>/i', '<amp-iframe${1} allowtransparency="allowtransparency"${5}>', $page);
-
-		// The attribute 'frameborder' in tag 'amp-iframe' is set to the invalid value 'no'.
-		$page = preg_replace('/<amp-iframe\b([^>]*) frameborder=(("no")|(\'no\'))([^>]*)>/i', '<amp-iframe${1} frameborder="0"${5}>', $page);
-
-		// The attribute 'marginheight' may not appear in tag 'amp-iframe'.
-		$page = preg_replace('/<amp-iframe\b([^>]*) marginheight=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<amp-iframe${1}${5}>', $page);
-
-		// The attribute 'marginwidth' may not appear in tag 'amp-iframe'.
-		$page = preg_replace('/<amp-iframe\b([^>]*) marginwidth=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<amp-iframe${1}${5}>', $page);
-
-		// The attribute 'mozallowfullscreen' may not appear in tag 'amp-iframe'.
-		$page = preg_replace('/<amp-iframe\b([^>]*) mozallowfullscreen\b(=(("[^"]*")|(\'[^\']*\')))?([^>]*)\s*?>/iU', '<amp-iframe${1}${6}>', $page);
-
-		// The attribute 'name' may not appear in tag 'amp-iframe'.
-		$page = preg_replace('/<amp-iframe\b([^>]*) name=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<amp-iframe${1}${5}>', $page);
-
-		// The attribute 'webkitallowfullscreen' may not appear in tag 'amp-iframe'.
-		$page = preg_replace('/<amp-iframe\b([^>]*) webkitallowfullscreen\b(=(("[^"]*")|(\'[^\']*\')))?([^>]*)\s*?>/iU', '<amp-iframe${1}${6}>', $page);
 
 
 		/*
 			<img/>
 		*/
-		$page = preg_replace('/<img\b([^>]*) src=(("\/?")|(\'\/?\'))([^>]*)\s*?\/?>/iU', '', $page);
-
-		$page = preg_replace('/<img\b([^>]*) src=(("[^"]*")|(\'[^\']*\'))([^>]*) data-lazy-src=(("([^"]*)")|(\'([^\']*)\'))([^>]*)\s*?\/?>/iU', '<img${1} src="${8}${10}"${5}${11} />', $page);
-		$page = preg_replace('/<img\b([^>]*) src=(("[^"]+(data:image\/gif;base64,[^"]+)")|(\'[^\']+(data:image\/gif;base64,[^\']+)\'))([^>]*)\s*?\/?>/iU', '<img${1} src="${4}${6}"${7} />', $page);
-		$page = preg_replace('/<img\b([^>]*) src=(("\/\/([^"]+)")|(\'\/\/([^\']+)\'))([^>]*)\s*?\/?>/iU', '<img${1} src="https://${4}${6}"${7} />', $page);
-
-		$page = preg_replace('/<img\b([^>]*) width=(("\d+%")|(\'\d+%\'))([^>]*)\s*?\/?>/iU', '<img${1}${2} />', $page);
-		$page = preg_replace('/<img\b([^>]*) height=(("\d+%")|(\'\d+%\'))([^>]*)\s*?\/?>/iU', '<img${1}${2} />', $page);
-
 		// The tag 'img' may only appear as a descendant of tag 'noscript'. Did you mean 'amp-img'?
 		$pattern = '/<img\b([^>]*)\s*?\/?>/iU';
 		$pattern2 = '/ class=(("([^"]*)")|(\'([^\']*)\'))/i';
@@ -520,36 +370,13 @@ class PWAMPTranscodingCommon
 			}
 		}
 
-		// The attribute 'align' may not appear in tag 'amp-img'.
-		$page = preg_replace('/<amp-img\b([^>]*) align=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?\/?>/iU', '<amp-img${1}${5} />', $page);
-
-		// The attribute 'async' may not appear in tag 'amp-img'.
-		$page = preg_replace('/<amp-img\b([^>]*) async=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?\/?>/iU', '<amp-img${1}${5} />', $page);
-
 		// The attribute 'border' may not appear in tag 'amp-img'.
 		$page = preg_replace('/<amp-img\b([^>]*) border=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?\/?>/iU', '<amp-img${1}${5} />', $page);
-
-		// The attribute 'usemap' may not appear in tag 'amp-img'.
-		$page = preg_replace('/<amp-img\b([^>]*) usemap=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?\/?>/iU', '<amp-img${1}${5} />', $page);
-
-
-		/*
-			<input>
-		*/
-		// The attribute 'tooltip' may not appear in tag 'input'.
-		$page = preg_replace('/<input\b([^>]*) tooltip=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<input${1}${5}>', $page);
 
 
 		/*
 			<link/>
 		*/
-		// The tag 'link rel=canonical' appears more than once in the document.
-		$page = preg_replace('/<link rel="canonical" href="[^"]+"\s*\/?>/i', '', $page);
-
-		$page = preg_replace('/<link rel=\'dns-prefetch\' href=\'(\/\/[^\']+)\'\s*\/?>/i', '<link rel="dns-prefetch" href="https:${1}">', $page);
-
-		$page = preg_replace('/<link\b([^>]*) rel=(("stylesheet")|(\'stylesheet\'))([^>]*)\s? href=(("(\/\/[^"]+)")|(\'(\/\/[^\']+)\'))([^>]*)\s*?\/?>/iU', '<link${1} rel="stylesheet"${5} href="https:${8}${10}"${11}>', $page);
-
 		// The attribute 'href' in tag 'link rel=stylesheet for fonts' is set to the invalid value...
 		$pattern = '/<link\b([^>]*)\s*?\/?>/iU';
 		if ( preg_match_all($pattern, $page, $matches) )
@@ -604,23 +431,6 @@ class PWAMPTranscodingCommon
 			$page = preg_replace('/<amp-link\b([^>]*) \/>/i', '<link${1} />', $page);
 		}
 
-		// The parent tag of tag 'link rel=stylesheet for fonts' is 'body', but it can only be 'head'.
-		$pattern = '/<body([^>]*)>(.*)(<link rel="stylesheet"[^>]*>)(.*)<\/body>/is';
-		while ( preg_match($pattern, $page, $match) )
-		{
-			$page = preg_replace($pattern, '<body${1}>${2}${4}</body>', $page);
-			$page = preg_replace('/<\/head>/i', $match[3] . "\n" . '</head>', $page);
-		}
-
-		$page = preg_replace('/^[\s\t]*<link\b([^>]*)>/im', '<link${1}>', $page);
-
-
-		/*
-			<map></map>
-		*/
-		// The tag 'map' is disallowed.
-		$page = preg_replace('/<map\b[^>]*>.*<\/map>/isU', '', $page);
-
 
 		/*
 			<meta>
@@ -631,34 +441,8 @@ class PWAMPTranscodingCommon
 			$page = preg_replace('/<head>/i', '<head>' . "\n" . '<meta charset="utf-8" />', $page);
 		}
 
-		// The tag 'meta http-equiv=Content-Type' may only appear as a descendant of tag 'head'.
-		$pattern = '/<body([^>]*)>(.*)(<meta http-equiv="Content-Type"[^>]*>)(.*)<\/body>/is';
-		if ( preg_match($pattern, $page, $match) )
-		{
-			$page = preg_replace($pattern, '<body${1}>${2}${4}</body>', $page);
-			$page = preg_replace('/<head>/i', '<head>' . "\n" . $match[3], $page);
-		}
-
-		// The attribute 'content' in tag 'meta http-equiv=Content-Type' is set to the invalid value 'text/html;charset=utf-8'.
-		$page = preg_replace('/<meta http-equiv="Content-Type" content="text\/html;\s?charset=[^"]*"\s*\/?>/i', '', $page);
-
 		// The attribute 'http-equiv' may not appear in tag 'meta name= and content='.
 		$page = preg_replace('/<meta\b[^>]* http-equiv=(("refresh")|(\'refresh"\'))[^>]*\s*?\/?>/iU', '', $page);
-
-		// The attribute 'name' in tag 'meta name= and content=' is set to the invalid value 'revisit-after'.
-		$page = preg_replace('/<meta\b[^>]* name=(("revisit-after")|(\'revisit-after\'))[^>]*\s*?\/?>/iU', '', $page);
-
-		// The property 'minimum-scale' is missing from attribute 'content' in tag 'meta name=viewport'.
-		$page = preg_replace('/<meta\b([^>]*) name=(("viewport")|(\'viewport\'))([^>]*) content=(("[^"]*width\s*=\s*device-width[^"]*")|(\'[^\']*width\s*=\s*device-width[^\']*\'))([^>]*)\s*?\/?>/iU', '<meta${1} name="viewport"${5} content="width=device-width, minimum-scale=1, initial-scale=1"${9} />', $page);
-
-		$page = preg_replace('/^[\s\t]*<meta\b([^>]*)>/im', '<meta${1}>', $page);
-
-
-		/*
-			<object></object>
-		*/
-		// The tag 'object' is disallowed.
-		$page = preg_replace('/<object\b[^>]*>.*<\/object>/isU', '', $page);
 
 
 		/*
@@ -669,80 +453,19 @@ class PWAMPTranscodingCommon
 
 
 		/*
-			<select></select>
-		*/
-		// The attribute 'value' may not appear in tag 'select'.
-		$page = preg_replace('/<select\b([^>]*) value=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<select${1}${5}>', $page);
-
-
-		/*
-			<span></span>
-		*/
-		// The attribute 'active' may not appear in tag 'span'.
-		$page = preg_replace('/<span\b([^>]*) active=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<span${1}${5}>', $page);
-
-		// The attribute 'amount' may not appear in tag 'span'.
-		$page = preg_replace('/<span\b([^>]*) amount=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<span${1}${5}>', $page);
-
-		// The attribute 'override' may not appear in tag 'span'.
-		$page = preg_replace('/<span\b([^>]*) override=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<span${1}${5}>', $page);
-
-		// The attribute 'temscope' may not appear in tag 'span'.
-		$page = preg_replace('/<span\b([^>]*) temscope\b(=(("[^"]*")|(\'[^\']*\')))?([^>]*)\s*?>/iU', '<span${1}${6}>', $page);
-
-
-		/*
 			<style></style>
 		*/
 		// The mandatory attribute 'amp-custom' is missing in tag 'style amp-custom'.
-		$page = preg_replace('/(<noscript>)?<style\b[^>]*>.*<\/style>(<\/noscript>)?/isU', '', $page);
+		$pattern = '/(<noscript>)?<style\b[^>]*>(.*)<\/style>(<\/noscript>)?/isU';
+		if ( preg_match_all($pattern, $page, $matches) )
+		{
+			foreach ( $matches[2] as $key => $value )
+			{
+				$this->style .= $this->minify_style($value);
+			}
 
-
-		/*
-			<table></table>
-		*/
-		// The attribute 'frame' may not appear in tag 'table'.
-		$page = preg_replace('/<table\b([^>]*) frame=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<table${1}${5}>', $page);
-
-		// The attribute 'rules' may not appear in tag 'table'.
-		$page = preg_replace('/<table\b([^>]*) rules=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<table${1}${5}>', $page);
-
-
-		/*
-			<textarea></textarea>
-		*/
-		// The attribute 'tooltip' may not appear in tag 'textarea'.
-		$page = preg_replace('/<textarea\b([^>]*) tooltip=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<textarea${1}${5}>', $page);
-
-		// The attribute 'value' may not appear in tag 'textarea'.
-		$page = preg_replace('/<textarea\b([^>]*) value=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<textarea${1}${5}>', $page);
-
-
-		/*
-			<title></title>
-		*/
-		$page = preg_replace('/^[\s\t]*<title>(.*)<\/title>/im', '<title>${1}</title>', $page, 1);
-
-
-		/*
-			<time></time>
-		*/
-		// The attribute 'pubdate' may not appear in tag 'time'.
-		$page = preg_replace('/<time\b([^>]*) pubdate\b(=(("[^"]*")|(\'[^\']*\')))?([^>]*)\s*?>/iU', '<time${1}${6}>', $page);
-
-
-		/*
-			<ul></ul>
-		*/
-		// The attribute 'featured_post_id' may not appear in tag 'ul'.
-		$page = preg_replace('/<ul\b([^>]*) featured_post_id=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?>/iU', '<ul${1}${5}>', $page);
-
-
-		/*
-			<video></video>
-		*/
-		// The tag 'video' may only appear as a descendant of tag 'noscript'. Did you mean 'amp-video'?
-		$page = preg_replace('/<video\b([^>]*)>/i', '<amp-video${1}>', $page);
+			$page = preg_replace($pattern, '', $page);
+		}
 
 
 		/*
@@ -880,18 +603,12 @@ class PWAMPTranscodingCommon
 			$header .= "\n" . '</style>';
 		}
 
-		// Progressive Web Apps
+		// Progressive Web App
 		$pattern = str_replace(array('/', '.'), array('\/', '\.'), $this->home_url);
-		if ( preg_match('/^' . $pattern . '\/(index\.php)?(\?amp(=1)?)?$/im', $this->page_url) )
+		if ( preg_match('/^' . $pattern . '\/(index\.php)?(\?amp)?$/im', $this->page_url) )
 		{
 			$header .= "\n" . '<link rel="manifest" href="' . $this->home_url . '/' . ( !empty($this->permalink) ? 'manifest.webmanifest' : '?manifest.webmanifest' ) . '" />';
 			$header .= "\n" . '<meta name="theme-color" content="#ffffff" />';
-			$header .= "\n" . '<link rel="apple-touch-icon" href="' . $this->plugins_url . '/pwamp/mf/mf-logo-192.png" />';
-		}
-
-		if ( !empty($this->page_type) )
-		{
-			$header .= "\n" . '<meta name="pwamp-page-type" content="' . $this->page_type . '" />';
 		}
 
 		$page = preg_replace('/<title>(.*)<\/title>/i', '<title>${1}</title>' . "\n" . $header, $page, 1);

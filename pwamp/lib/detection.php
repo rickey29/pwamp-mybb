@@ -1,10 +1,10 @@
 <?php
-if ( !defined('ABSPATH') )
+if ( !defined('IN_MYBB') )
 {
 	exit;
 }
 
-class MDetection
+class M_Detection
 {
 	private $device_list = array(
 		// Apple iOS
@@ -76,13 +76,13 @@ class MDetection
 
 		// Google
 		'googlebot-mobile' => 'mobile-bot',
-		'googlebot' => 'desktop-bot',
+		'googlebot' => 'bot',
 
 		// Microsoft
-		'bingbot' => 'desktop-bot',
+		'bingbot' => 'bot',
 
 		// Yahoo!
-		'Yahoo! Slurp' => 'desktop-bot'
+		'Yahoo! Slurp' => 'bot'
 	);
 
 	private $accept_list = array(
