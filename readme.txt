@@ -1,6 +1,6 @@
 PWA+AMP MyBB 1.8
 ################
-version: 2.0.0
+version: 2.1.0
 last updated: Fri., Apr. 10, 2020
 
 Description
@@ -23,6 +23,7 @@ This version is developed based on MyBB version from 1.8.0 to 1.8.22.
 Download
 ++++++++++++++++
 -- GitHub: https://github.com/rickey29/pwamp-mybb18
+-- MyBB Plugins Libraries: https://community.mybb.com/mods.php?action=view&pid=1351
 
 Installation
 ++++++++++++++++
@@ -76,6 +77,9 @@ You can Google to find the solution, for example, this one: https://www.howtogee
 
 History
 ++++++++++++++++
+version 2.1.0 (Fri., Apr. 10, 2020)
+-- bug fix: Corrupt PNG image causes non-recoverable fatal PHP error
+
 version 2.0.0 (Fri., Apr. 10, 2020)
 -- improvement: re-write transcoding section
 

@@ -29,7 +29,11 @@ function get_image_size($url)
 	}
 
 
-	$image = imagecreatefromstring($raw);
+	$image = @imagecreatefromstring($raw);
+	if ( empty($image) )
+	{
+		return [0, 0];
+	}
 
 	$width = imagesx($image);
 	$height = imagesy($image);

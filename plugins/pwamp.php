@@ -13,7 +13,7 @@ function pwamp_info()
 		'website'       => 'https://flexplat.com/pwamp-mybb18/',
 		'author'        => 'Rickey Gu',
 		'authorsite'    => 'https://flexplat.com',
-		'version'       => '2.0.0',
+		'version'       => '2.1.0',
 		'guid'          => str_replace('.php', '', basename(__FILE__)),
 		'codename'      => str_replace('.php', '', basename(__FILE__)),
 		'compatibility' => '18*'
