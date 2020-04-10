@@ -1,33 +1,28 @@
-PWAMP MyBB 1.8 Readme
+PWA+AMP MyBB 1.8
 ################
-version: 0.1.0
-last updated: Wed., May 15, 2019
-
+version: 2.0.0
+last updated: Fri., Apr. 10, 2020
 
 Description
 ++++++++++++++++
-Transcodes MyBB 1.8 into both first load cache-enabled of PWA and lightning fast load time of AMP style.
-
+Converts MyBB 1.8 into Progressive Web Apps and Accelerated Mobile Pages styles.
 
 Highlight
 ++++++++++++++++
 AMP can only work based on HTTPS -- you need to update your server to support SSL/HTTPS.
 
-
 Open Issues
 ++++++++++++++++
--- Do NOT support reCAPTCHA so far.
+* https://github.com/GoogleChrome/lighthouse/issues/7158
+* https://github.com/SuperPWA/Super-Progressive-Web-Apps/issues/105
 
+Infrastructure
+++++++++++++++++
+This version is developed based on MyBB version from 1.8.0 to 1.8.22.
 
 Download
 ++++++++++++++++
 -- GitHub: https://github.com/rickey29/pwamp-mybb18
-
-
-Infrastructure
-++++++++++++++++
-This version is developed based on MyBB version from 1.8.0 to 1.8.20.
-
 
 Installation
 ++++++++++++++++
@@ -38,50 +33,57 @@ Assume your MyBB 1.8 web site is located at: "http://yoursite.com".
 
 step 1:
 ================
-Extract PWAMP MyBB 1.8 zip package on your PC, you will get a "pwampmybb18" directory.
+Extract PWA+AMP MyBB 1.8 zip package on your PC, you will get a "pwamp-mybb18" directory.
 
 step 2:
 ================
-Upload following directory and file from above "pwampmybb18" directory
--- pwamp
--- pwamp.php
+Upload following directory and files from above "pwamp-mybb18" directory
+-- languages/english/pwamp.lang.php
+-- plugins/pwamp
+-- plugins/pwamp.php
 
-to your web site "inc/plugins" directory, so you will have follow new directory and file:
+to your web site "inc" directory, so you will have follow new directory and files:
+-- http://yoursite.com/inc/languages/english/pwamp.lang.php
 -- http://yoursite.com/inc/plugins/pwamp
 -- http://yoursite.com/inc/plugins/pwamp.php
 
 step 3:
 ================
-Browse to "Admin Control Panel", select "Plugins" menu under "Configuration" category, click the "Activate" link to install/activate "PWAMP MyBB 1.8".
-
+Browse to "Admin Control Panel", select "Plugins" menu under "Configuration" category, click the "Activate" link to install/activate "PWA+AMP MyBB 1.8".
 
 Configuration
 ++++++++++++++++
 None.
 
-
 Upgrade Notice
 ++++++++++++++++
 None.
 
-
 Frequently Asked Questions
 ++++++++++++++++
 
-How to make web browser switch to AMP compliant pages?
+How to check my website AMP validation status?
 ================
-Enter "https://yoursite.com/?amp" in your web browser address bar.
+I use Chrome AMP Validator Extension: https://chrome.google.com/webstore/detail/amp-validator/nmoffdblmcmgeicmolmhobpoocbbmknc .  You can Google to find more solution.
 
-How to make web browser switch to original theme/style pages?
+How to audit my website PWA validation status?
 ================
-Enter "https://yoursite.com/?desktop" in your web browser address bar.
+I use Chrome Lighthouse Extension: https://chrome.google.com/webstore/detail/lighthouse/blipmdconlkpinefehnmjammfjpmpbjk .  You can Google to find more solution.
 
+How to add website to mobile device home screen?
+================
+You can Google to find the solution, for example, this one: https://www.howtogeek.com/196087/how-to-add-websites-to-the-home-screen-on-any-smartphone-or-tablet/ .
 
 History
 ++++++++++++++++
+version 2.0.0 (Fri., Apr. 10, 2020)
+-- improvement: re-write transcoding section
+
+version 1.0.0 (Fri., Jun. 28, 2019)
+-- new feature: inline with PWAMP phpBB 3.2
+
 version 0.1.0 (Wed., May 15, 2019)
 -- prototype development
-
 
 Support
 ++++++++++++++++
@@ -89,7 +91,6 @@ author: Rickey Gu
 web: https://flexplat.com
 email: rickey29@gmail.com
 twitter: @rickey29
-
 
 Copyright and Disclaimer
 ++++++++++++++++
