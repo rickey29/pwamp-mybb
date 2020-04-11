@@ -1,7 +1,7 @@
 PWA+AMP MyBB 1.8
 ################
-version: 2.1.0
-last updated: Fri., Apr. 10, 2020
+version: 2.2.0
+last updated: Sat., Apr. 11, 2020
 
 Description
 ++++++++++++++++
@@ -48,6 +48,8 @@ to your web site "inc" directory, so you will have follow new directory and file
 -- http://yoursite.com/inc/plugins/pwamp
 -- http://yoursite.com/inc/plugins/pwamp.php
 
+If your website uses other language than English, you should upload the "pwamp.lang.php" file to your language directory, inside of "english" directory.  And then translate the content of "pwamp.lang.php" into your language.
+
 step 3:
 ================
 Browse to "Admin Control Panel", select "Plugins" menu under "Configuration" category, click the "Activate" link to install/activate "PWA+AMP MyBB 1.8".
@@ -77,6 +79,9 @@ You can Google to find the solution, for example, this one: https://www.howtogee
 
 History
 ++++++++++++++++
+version 2.2.0 (Sat., Apr. 11, 2020)
+-- bug fix: Add support for language file to other languages, instead of only to English.
+
 version 2.1.0 (Fri., Apr. 10, 2020)
 -- bug fix: Corrupt PNG image causes non-recoverable fatal PHP error
 

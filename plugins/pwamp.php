@@ -13,7 +13,7 @@ function pwamp_info()
 		'website'       => 'https://flexplat.com/pwamp-mybb18/',
 		'author'        => 'Rickey Gu',
 		'authorsite'    => 'https://flexplat.com',
-		'version'       => '2.1.0',
+		'version'       => '2.2.0',
 		'guid'          => str_replace('.php', '', basename(__FILE__)),
 		'codename'      => str_replace('.php', '', basename(__FILE__)),
 		'compatibility' => '18*'
@@ -197,7 +197,7 @@ toolbox.router.default = toolbox.fastest;';
 	}
 </script>
 <div style="position:fixed!important;bottom:0;left:0;overflow:hidden!important;background:hsla(0,0%,100%,0.7);z-index:1000;width:100%">
-	<div id="pwamp-notification" style="display:flex;align-items:center;justify-content:center">' . $lang->switch_to . '&nbsp;<a href="' . $this->amphtml . '">' . $lang->mobile_version . '</a>&nbsp;&nbsp;<input type="button" value="' . $lang->continue . '" style="min-width:80px" onclick="pwamp_notification_toggle();" /></div>
+	<div id="pwamp-notification" style="display:flex;align-items:center;justify-content:center">' . ( !empty($lang->switch_to) ? $lang->switch_to : 'Switch to' ) . '&nbsp;<a href="' . $this->amphtml . '">' . ( !empty($lang->mobile_version) ? $lang->mobile_version : 'mobile version' ) . '</a>&nbsp;&nbsp;<input type="button" value="' . ( !empty($lang->continue) ? $lang->continue : 'Continue' ) . '" style="min-width:80px" onclick="pwamp_notification_toggle();" /></div>
 </div>';
 	}
 
@@ -237,9 +237,9 @@ toolbox.router.default = toolbox.fastest;';
 		$page = preg_replace('/^[\s\t]*<style type="[^"]+" id="[^"]+"><\/style>$/im', '', $page);
 
 		$language = array(
-			'continue' => $lang->continue,
-			'desktop_version' => $lang->desktop_version,
-			'switch_to' =>  $lang->switch_to
+			'continue' => !empty($lang->continue) ? $lang->continue : 'Continue',
+			'desktop_version' => !empty($lang->desktop_version) ? $lang->desktop_version : 'desktop version',
+			'switch_to' =>  !empty($lang->switch_to) ? $lang->switch_to : 'Switch to'
 		);
 
 		$data = array(
@@ -415,7 +415,7 @@ toolbox.router.default = toolbox.fastest;';
 
 		my_setcookie('pwamp_style', $device);
 
-		$lang->load('pwamp');
+		$lang->load('pwamp', FALSE, TRUE);
 
 
 		if ( $device == 'desktop' )
