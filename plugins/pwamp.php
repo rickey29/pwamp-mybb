@@ -13,15 +13,11 @@ function pwamp_info()
 		'website'       => 'https://flexplat.com/pwamp-mybb18/',
 		'author'        => 'Rickey Gu',
 		'authorsite'    => 'https://flexplat.com',
-		'version'       => '2.2.0',
+		'version'       => '2.3.0',
 		'guid'          => str_replace('.php', '', basename(__FILE__)),
 		'codename'      => str_replace('.php', '', basename(__FILE__)),
 		'compatibility' => '18*'
 	);
-}
-
-function pwamp_install()
-{
 }
 
 function pwamp_is_installed()
@@ -34,10 +30,6 @@ function pwamp_activate()
 }
 
 function pwamp_deactivate()
-{
-}
-
-function pwamp_uninstall()
 {
 }
 
@@ -158,7 +150,8 @@ toolbox.router.default = toolbox.fastest;';
 
 	private function get_amphtml()
 	{
-		$amphtml = preg_replace('/((\?)|(&(amp;)?))((amp)|(desktop))(=1)?$/im', '', $this->page_url);
+		$amphtml = htmlspecialchars_decode($this->page_url);
+		$amphtml = preg_replace('/^(.*)(((\?)|(&(amp;)?))((amp)|(desktop))(=1)?)?(#[^#]*)?$/imU', '${1}${11}', $amphtml);
 		$amphtml = preg_replace('/^(.*)(#[^#]*)?$/imU', '${1}' . ( ( strpos($amphtml, '?') !== false ) ? '&amp=1' : '?amp=1' ) . '${2}', $amphtml);
 		$amphtml = htmlspecialchars($amphtml);
 
@@ -167,7 +160,8 @@ toolbox.router.default = toolbox.fastest;';
 
 	private function get_canonical()
 	{
-		$canonical = preg_replace('/((\?)|(&(amp;)?))((amp)|(desktop))(=1)?$/im', '', $this->page_url);
+		$canonical = htmlspecialchars_decode($this->page_url);
+		$canonical = preg_replace('/^(.*)(((\?)|(&(amp;)?))((amp)|(desktop))(=1)?)?(#[^#]*)?$/imU', '${1}${11}', $canonical);
 		$canonical = preg_replace('/^(.*)(#[^#]*)?$/imU', '${1}' . ( ( strpos($canonical, '?') !== false ) ? '&desktop=1' : '?desktop=1' ) . '${2}', $canonical);
 		$canonical = htmlspecialchars($canonical);
 
@@ -197,7 +191,7 @@ toolbox.router.default = toolbox.fastest;';
 	}
 </script>
 <div style="position:fixed!important;bottom:0;left:0;overflow:hidden!important;background:hsla(0,0%,100%,0.7);z-index:1000;width:100%">
-	<div id="pwamp-notification" style="display:flex;align-items:center;justify-content:center">' . ( !empty($lang->switch_to) ? $lang->switch_to : 'Switch to' ) . '&nbsp;<a href="' . $this->amphtml . '">' . ( !empty($lang->mobile_version) ? $lang->mobile_version : 'mobile version' ) . '</a>&nbsp;&nbsp;<input type="button" value="' . ( !empty($lang->continue) ? $lang->continue : 'Continue' ) . '" style="min-width:80px" onclick="pwamp_notification_toggle();" /></div>
+	<div id="pwamp-notification" style="display:flex;align-items:center;justify-content:center">' . ( !empty($lang->pwamp_switch_to) ? $lang->pwamp_switch_to : 'Switch to' ) . '&nbsp;<a href="' . $this->amphtml . '">' . ( !empty($lang->pwamp_mobile_version) ? $lang->pwamp_mobile_version : 'mobile version' ) . '</a>&nbsp;&nbsp;<input type="button" value="' . ( !empty($lang->pwamp_continue) ? $lang->pwamp_continue : 'Continue' ) . '" style="min-width:80px" onclick="pwamp_notification_toggle();" /></div>
 </div>';
 	}
 
@@ -237,9 +231,9 @@ toolbox.router.default = toolbox.fastest;';
 		$page = preg_replace('/^[\s\t]*<style type="[^"]+" id="[^"]+"><\/style>$/im', '', $page);
 
 		$language = array(
-			'continue' => !empty($lang->continue) ? $lang->continue : 'Continue',
-			'desktop_version' => !empty($lang->desktop_version) ? $lang->desktop_version : 'desktop version',
-			'switch_to' =>  !empty($lang->switch_to) ? $lang->switch_to : 'Switch to'
+			'continue' => !empty($lang->pwamp_continue) ? $lang->pwamp_continue : 'Continue',
+			'desktop_version' => !empty($lang->pwamp_desktop_version) ? $lang->pwamp_desktop_version : 'desktop version',
+			'switch_to' =>  !empty($lang->pwamp_switch_to) ? $lang->pwamp_switch_to : 'Switch to'
 		);
 
 		$data = array(
@@ -264,6 +258,12 @@ toolbox.router.default = toolbox.fastest;';
 	{
 		global $mybb;
 
+		$redirection = preg_replace('/^' . $this->home_url_pattern . '\//im', '', $redirection);
+		if ( !preg_match('/^https?:\/\//im', $redirection) )
+		{
+			$redirection = $this->home_url . '/' . $redirection;
+		}
+
 		$host_url = preg_replace('/\/$/im', '', $mybb->settings['homeurl']);
 
 		header('Content-type: application/json');
@@ -280,6 +280,68 @@ toolbox.router.default = toolbox.fastest;';
 	}
 
 
+	public function calendar_end()
+	{
+		global $mybb;
+
+		if ( $mybb->request_method != 'post' )
+		{
+			return;
+		}
+
+		my_setcookie('pwamp_month', strval($mybb->input['month']), 5);
+		my_setcookie('pwamp_year', strval($mybb->input['year']), 5);
+		my_setcookie('pwamp_calendar', strval($mybb->input['calendar']), 5);
+		my_setcookie('pwamp_action', $mybb->input['action'], 5);
+
+		$this->json_redirect('calendar.php');
+	}
+
+	public function calendar_main_view()
+	{
+		global $mybb;
+
+		if ( $mybb->request_method != 'get' )
+		{
+			return;
+		}
+
+		$mybb->input['month'] = (int)$mybb->cookies['pwamp_month'];
+		$mybb->input['year'] = (int)$mybb->cookies['pwamp_year'];
+		$mybb->input['calendar'] = (int)$mybb->cookies['pwamp_calendar'];
+		$mybb->input['action'] = $mybb->cookies['pwamp_action'];
+	}
+
+	public function contact_end()
+	{
+		global $mybb, $errors, $contact_subject, $contact_message, $user_email;
+
+		if ( $mybb->request_method == 'post' )
+		{
+			if ( !empty($errors) )
+			{
+				my_setcookie('pwamp_errors', json_encode($errors), 5);
+			}
+
+			my_setcookie('pwamp_contact_subject', $contact_subject, 5);
+			my_setcookie('pwamp_contact_message', $contact_message, 5);
+			my_setcookie('pwamp_user_email', $user_email, 5);
+
+			$this->json_redirect('contact.php');
+		}
+		else
+		{
+			if ( !empty($mybb->cookies['pwamp_errors']) )
+			{
+				$errors = json_decode($mybb->cookies['pwamp_errors']);
+			}
+
+			$contact_subject = $mybb->cookies['pwamp_contact_subject'];
+			$contact_message = $mybb->cookies['pwamp_contact_message'];
+			$user_email = $mybb->cookies['pwamp_user_email'];
+		}
+	}
+
 	public function error($error)
 	{
 		global $mybb;
@@ -289,14 +351,32 @@ toolbox.router.default = toolbox.fastest;';
 			return $error;
 		}
 
-		if ( $this->page_base != 'member.php' )
+		if ( $this->page_base == 'member.php' )
+		{
+			if ( $mybb->input['action'] != 'do_login' && $mybb->input['action'] != 'do_lostpw' && $mybb->input['action'] != 'do_register' && $mybb->input['action'] != '' )
+			{
+				return $error;
+			}
+
+			my_setcookie('pwamp_error', $error, 5);
+
+			$this->json_redirect('member.php');
+		}
+		elseif ( $this->page_base == 'misc.php' )
+		{
+			if ( $mybb->input['action'] != 'do_helpsearch' )
+			{
+				return $error;
+			}
+
+			my_setcookie('pwamp_error', $error, 5);
+
+			$this->json_redirect('misc.php');
+		}
+		else
 		{
 			return $error;
 		}
-
-		my_setcookie('pwamp_error', $error, 5);
-
-		$this->json_redirect($this->home_url . '/member.php');
 	}
 
 	public function forumdisplay_start()
@@ -320,25 +400,45 @@ toolbox.router.default = toolbox.fastest;';
 			return;
 		}
 
-		if ( $this->page_base != 'member.php' )
+		if ( $this->page_base == 'contact.php' )
 		{
-			return;
+			if ( $mybb->input['action'] != '' )
+			{
+				return;
+			}
+
+			if ( !empty($mybb->cookies['pwamp_url']) )
+			{
+				$url = $mybb->cookies['pwamp_url'];
+				$message = $mybb->cookies['pwamp_message'];
+				$title = $mybb->cookies['pwamp_title'];
+				$force_redirect = !empty($mybb->cookies['pwamp_force_redirect']) ? TRUE : FALSE;
+
+				redirect($url, $message, $title, $force_redirect);
+			}
 		}
-
-		if ( !empty($mybb->cookies['pwamp_url']) )
+		elseif ( $this->page_base == 'member.php' )
 		{
-			$url = $mybb->cookies['pwamp_url'];
-			$message = $mybb->cookies['pwamp_message'];
-			$title = $mybb->cookies['pwamp_title'];
-			$force_redirect = !empty($mybb->cookies['pwamp_force_redirect']) ? TRUE : FALSE;
+			if ( $mybb->input['action'] != '' )
+			{
+				return;
+			}
 
-			redirect($url, $message, $title, $force_redirect);
-		}
-		elseif ( !empty($mybb->cookies['pwamp_error']) )
-		{
-			$error = $mybb->cookies['pwamp_error'];
+			if ( !empty($mybb->cookies['pwamp_url']) )
+			{
+				$url = $mybb->cookies['pwamp_url'];
+				$message = $mybb->cookies['pwamp_message'];
+				$title = $mybb->cookies['pwamp_title'];
+				$force_redirect = !empty($mybb->cookies['pwamp_force_redirect']) ? TRUE : FALSE;
 
-			error($error);
+				redirect($url, $message, $title, $force_redirect);
+			}
+			elseif ( !empty($mybb->cookies['pwamp_error']) )
+			{
+				$error = $mybb->cookies['pwamp_error'];
+
+				error($error);
+			}
 		}
 	}
 
@@ -355,15 +455,51 @@ toolbox.router.default = toolbox.fastest;';
 
 		if ( $this->page_base == 'member.php' )
 		{
-			if ( empty($mybb->cookies['pwamp_register']) )
+			if ( $mybb->input['action'] != 'register' )
 			{
 				return;
 			}
 
 			$mybb->request_method = 'post';
 		}
-		elseif ( $this->page_base == 'newthread.php' || $this->page_base == 'newreply.php' )
+		elseif ( $this->page_base == 'misc.php' )
 		{
+			if ( $mybb->input['action'] != 'do_helpsearch' )
+			{
+				return;
+			}
+
+			$mybb->request_method = 'post';
+		}
+		elseif ( $this->page_base == 'newreply.php' )
+		{
+			if ( $mybb->input['action'] != '' )
+			{
+				return;
+			}
+
+			if ( empty($mybb->cookies['pwamp_post']) )
+			{
+				return;
+			}
+
+			$_POST = json_decode($mybb->cookies['pwamp_post'], TRUE);
+
+			if ( !empty($_POST['previewpost']) )
+			{
+				$mybb->input['previewpost'] = $_POST['previewpost'];
+			}
+
+			$mybb->input['message'] = $_POST['message'];
+			$mybb->input['subject'] = $_POST['subject'];
+		}
+		elseif ( $this->page_base == 'newthread.php' )
+		{
+			if ( $mybb->input['action'] != '' )
+			{
+				return;
+			}
+
 			if ( empty($mybb->cookies['pwamp_post']) )
 			{
 				return;
@@ -442,6 +578,11 @@ toolbox.router.default = toolbox.fastest;';
 		}
 
 
+		$plugins->add_hook('calendar_end', array($this, 'calendar_end'));
+		$plugins->add_hook('calendar_main_view', array($this, 'calendar_main_view'));
+
+		$plugins->add_hook('contact_end', array($this, 'contact_end'));
+
 		$plugins->add_hook('error', array($this, 'error'));
 
 		$plugins->add_hook('forumdisplay_start', array($this, 'forumdisplay_start'));
@@ -454,8 +595,19 @@ toolbox.router.default = toolbox.fastest;';
 		$plugins->add_hook('member_login', array($this, 'member_login'));
 		$plugins->add_hook('member_login_end', array($this, 'member_login_end'));
 
+		$plugins->add_hook('member_lostpw', array($this, 'member_lostpw'));
+
 		$plugins->add_hook('member_register_end', array($this, 'member_register_end'));
 		$plugins->add_hook('member_register_start', array($this, 'member_register_start'));
+
+		$plugins->add_hook('memberlist_end', array($this, 'memberlist_end'));
+		$plugins->add_hook('memberlist_start', array($this, 'memberlist_start'));
+
+		$plugins->add_hook('misc_do_helpsearch_end', array($this, 'misc_do_helpsearch_end'));
+		$plugins->add_hook('misc_do_helpsearch_start', array($this, 'misc_do_helpsearch_start'));
+
+		$plugins->add_hook('misc_syndication_end', array($this, 'misc_syndication_end'));
+		$plugins->add_hook('misc_syndication_start', array($this, 'misc_syndication_start'));
 
 		$plugins->add_hook('newreply_end', array($this, 'newreply_end'));
 		$plugins->add_hook('newreply_start', array($this, 'newreply_start'));
@@ -510,7 +662,33 @@ toolbox.router.default = toolbox.fastest;';
 			my_setcookie('pwamp_do_captcha', '1', 6);
 		}
 
-		$this->json_redirect($this->home_url . '/member.php?action=login');
+		$this->json_redirect('member.php?action=login');
+	}
+
+	public function member_lostpw()
+	{
+		global $mybb, $errors;
+
+		if ( $mybb->request_method == 'post' )
+		{
+			if ( empty($errors) )
+			{
+				return;
+			}
+
+			my_setcookie('pwamp_errors', json_encode($errors), 5);
+
+			$this->json_redirect('member.php?action=lostpw');
+		}
+		else
+		{
+			if ( empty($mybb->cookies['pwamp_errors']) )
+			{
+				return;
+			}
+
+			$errors = json_decode($mybb->cookies['pwamp_errors']);
+		}
 	}
 
 	public function member_register_end()
@@ -538,7 +716,7 @@ toolbox.router.default = toolbox.fastest;';
 				my_setcookie('pwamp_errors', json_encode($errors), 6);
 			}
 
-			$this->json_redirect($this->home_url . '/member.php?action=register&agree=1');
+			$this->json_redirect('member.php?action=register&agree=1');
 		}
 		else
 		{
@@ -549,6 +727,102 @@ toolbox.router.default = toolbox.fastest;';
 
 			$errors = json_decode($mybb->cookies['pwamp_errors']);
 		}
+	}
+
+	public function memberlist_end()
+	{
+		global $mybb;
+
+		if ( $mybb->request_method != 'post' )
+		{
+			return;
+		}
+
+		my_setcookie('pwamp_username', $mybb->input['username'], 5);
+		my_setcookie('pwamp_website', $mybb->input['website'], 5);
+		my_setcookie('pwamp_order', $mybb->input['order'], 5);
+		my_setcookie('pwamp_sort', $mybb->input['sort'], 5);
+		my_setcookie('pwamp_submit', $mybb->input['submit'], 5);
+
+		$this->json_redirect('memberlist.php');
+	}
+
+	public function memberlist_start()
+	{
+		global $mybb;
+
+		if ( $mybb->request_method != 'get' )
+		{
+			return;
+		}
+
+		$mybb->input['username'] = $mybb->cookies['pwamp_username'];
+		$mybb->input['website'] = $mybb->cookies['pwamp_website'];
+		$mybb->input['order'] = $mybb->cookies['pwamp_order'];
+		$mybb->input['sort'] = $mybb->cookies['pwamp_sort'];
+		$mybb->input['submit'] = $mybb->cookies['pwamp_submit'];
+	}
+
+	public function misc_do_helpsearch_end()
+	{
+		global $mybb, $search_data;
+
+		if ( $mybb->request_method != 'post' )
+		{
+			return;
+		}
+
+		my_setcookie('pwamp_keywords', $$search_data['keywords'], 5);
+		my_setcookie('pwamp_name', strval($$search_data['name']), 5);
+		my_setcookie('pwamp_document', strval($$search_data['document']), 5);
+
+		$this->json_redirect('misc.php');
+	}
+
+	public function misc_do_helpsearch_start()
+	{
+		global $mybb;
+
+		if ( $mybb->request_method != 'post' )
+		{
+			return;
+		}
+
+		$mybb->input['keywords'] = $mybb->cookies['pwamp_keywords'];
+		$mybb->input['name'] = (int)$mybb->cookies['pwamp_name'];
+		$mybb->input['document'] = (int)$mybb->cookies['pwamp_document'];
+	}
+
+	public function misc_syndication_end()
+	{
+		global $mybb, $fid, $version, $forums, $limit;
+
+		if ( $mybb->request_method != 'post' )
+		{
+			return;
+		}
+
+		my_setcookie('pwamp_fid', strval($fid), 5);
+		my_setcookie('pwamp_version', $version, 5);
+		my_setcookie('pwamp_forums', json_encode($forums), 5);
+		my_setcookie('pwamp_limit', strval($limit), 5);
+
+		$this->json_redirect('misc.php?action=syndication');
+	}
+
+	public function misc_syndication_start()
+	{
+		global $mybb;
+
+		if ( $mybb->request_method != 'get' )
+		{
+			return;
+		}
+
+		$mybb->input['fid'] = (int)$mybb->cookies['pwamp_fid'];
+		$mybb->input['version'] = $mybb->cookies['pwamp_version'];
+		$mybb->input['forums'] = json_decode($mybb->cookies['pwamp_forums']);
+		$mybb->input['limit'] = (int)$mybb->cookies['pwamp_limit'];
 	}
 
 	public function newreply_end()
@@ -572,7 +846,7 @@ toolbox.router.default = toolbox.fastest;';
 
 		my_setcookie('pwamp_post', json_encode($_POST), 6);
 
-		$this->json_redirect($this->home_url . '/newreply.php?tid=' . $tid . '&processed=1');
+		$this->json_redirect('newreply.php?tid=' . $tid . '&processed=1');
 	}
 
 	public function newreply_start()
@@ -588,7 +862,7 @@ toolbox.router.default = toolbox.fastest;';
 
 			my_setcookie('pwamp_post_errors', json_encode($post_errors), 5);
 
-			$this->json_redirect($this->home_url . '/newreply.php?tid=' . $tid . '&amp;processed=1');
+			$this->json_redirect('newreply.php?tid=' . $tid . '&amp;processed=1');
 		}
 
 		if ( !empty($post_errors) || empty($mybb->cookies['pwamp_post_errors']) )
@@ -621,7 +895,7 @@ toolbox.router.default = toolbox.fastest;';
 
 		my_setcookie('pwamp_post', json_encode($_POST), 6);
 
-		$this->json_redirect($this->home_url . '/newthread.php?fid=' . $fid . '&processed=1');
+		$this->json_redirect('newthread.php?fid=' . $fid . '&processed=1');
 	}
 
 	public function newthread_start()
@@ -677,29 +951,114 @@ toolbox.router.default = toolbox.fastest;';
 			return $redirect_args;
 		}
 
-		if ( $this->page_base != 'member.php' && $this->page_base != 'newthread.php' && $this->page_base != 'newreply.php' )
+		if ( $this->page_base == 'contact.php' )
+		{
+			if ( $mybb->input['action'] != '' )
+			{
+				return $redirect_args;
+			}
+
+			my_setcookie('pwamp_url', $redirect_args['url'], 5);
+
+			if ( !empty($redirect_args['message']) )
+			{
+				my_setcookie('pwamp_message', $redirect_args['message'], 6);
+			}
+
+			if ( !empty($redirect_args['title']) )
+			{
+				my_setcookie('pwamp_title', $redirect_args['title'], 6);
+			}
+
+			if ( !empty($force_redirect) )
+			{
+				my_setcookie('pwamp_force_redirect', '1', 6);
+			}
+
+			$this->json_redirect($redirect_args['url']);
+		}
+		elseif ( $this->page_base == 'member.php' )
+		{
+			if ( $mybb->input['action'] != 'do_login' && $mybb->input['action'] != 'do_lostpw' )
+			{
+				return $redirect_args;
+			}
+
+			my_setcookie('pwamp_url', $redirect_args['url'], 5);
+
+			if ( !empty($redirect_args['message']) )
+			{
+				my_setcookie('pwamp_message', $redirect_args['message'], 6);
+			}
+
+			if ( !empty($redirect_args['title']) )
+			{
+				my_setcookie('pwamp_title', $redirect_args['title'], 6);
+			}
+
+			if ( !empty($force_redirect) )
+			{
+				my_setcookie('pwamp_force_redirect', '1', 6);
+			}
+
+			$this->json_redirect($redirect_args['url']);
+		}
+		elseif ( $this->page_base == 'newreply.php' )
+		{
+			if ( $mybb->input['action'] != 'do_newreply' )
+			{
+				return $redirect_args;
+			}
+
+			my_setcookie('pwamp_url', $redirect_args['url'], 5);
+
+			if ( !empty($redirect_args['message']) )
+			{
+				my_setcookie('pwamp_message', $redirect_args['message'], 6);
+			}
+
+			if ( !empty($redirect_args['title']) )
+			{
+				my_setcookie('pwamp_title', $redirect_args['title'], 6);
+			}
+
+			if ( !empty($force_redirect) )
+			{
+				my_setcookie('pwamp_force_redirect', '1', 6);
+			}
+
+			$this->json_redirect($redirect_args['url']);
+		}
+		elseif ( $this->page_base == 'newthread.php' )
+		{
+			if ( $mybb->input['action'] != 'do_newthread' )
+			{
+				return $redirect_args;
+			}
+
+			my_setcookie('pwamp_url', $redirect_args['url'], 5);
+
+			if ( !empty($redirect_args['message']) )
+			{
+				my_setcookie('pwamp_message', $redirect_args['message'], 6);
+			}
+
+			if ( !empty($redirect_args['title']) )
+			{
+				my_setcookie('pwamp_title', $redirect_args['title'], 6);
+			}
+
+			if ( !empty($force_redirect) )
+			{
+				my_setcookie('pwamp_force_redirect', '1', 6);
+			}
+
+			$this->json_redirect($redirect_args['url']);
+		}
+		else
 		{
 			return $redirect_args;
 		}
-
-		my_setcookie('pwamp_url', $redirect_args['url'], 5);
-
-		if ( !empty($redirect_args['message']) )
-		{
-			my_setcookie('pwamp_message', $redirect_args['message'], 6);
-		}
-
-		if ( !empty($redirect_args['title']) )
-		{
-			my_setcookie('pwamp_title', $redirect_args['title'], 6);
-		}
-
-		if ( !empty($force_redirect) )
-		{
-			my_setcookie('pwamp_force_redirect', '1', 6);
-		}
-
-		$this->json_redirect($this->home_url . '/' . $redirect_args['url']);
 	}
 }
 

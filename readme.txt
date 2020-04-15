@@ -1,7 +1,7 @@
 PWA+AMP MyBB 1.8
 ################
-version: 2.2.0
-last updated: Sat., Apr. 11, 2020
+version: 2.3.0
+last updated: Wed., Apr. 15, 2020
 
 Description
 ++++++++++++++++
@@ -79,6 +79,9 @@ You can Google to find the solution, for example, this one: https://www.howtogee
 
 History
 ++++++++++++++++
+version 2.3.0 (Wed., Apr. 15, 2020)
+-- improvement: Support more form post functions.
+
 version 2.2.0 (Sat., Apr. 11, 2020)
 -- bug fix: Add support for language file to other languages, instead of only to English.
 

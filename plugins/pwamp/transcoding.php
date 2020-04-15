@@ -154,8 +154,9 @@ class PWAMPTranscoding
 		}
 		else
 		{
-			$canonical = preg_replace('/^(.*)(((\?)|(&(amp;)?))((amp)|(desktop))(=1)?)?(#[^#]*)?$/imU', '${1}${11}', $this->page_url);
-			$canonical = preg_replace('/^(.*)(#[^#]*)?$/imU', '${1}' . ( strpos($canonical, '?') !== false ? '&desktop=1' : '?desktop=1' ) . '${2}', $canonical);
+			$canonical = htmlspecialchars_decode($this->page_url);
+			$canonical = preg_replace('/^(.*)(((\?)|(&(amp;)?))((amp)|(desktop))(=1)?)?(#[^#]*)?$/imU', '${1}${11}', $canonical);
+			$canonical = preg_replace('/^(.*)(#[^#]*)?$/imU', '${1}' . ( ( strpos($canonical, '?') !== false ? '&desktop=1' : '?desktop=1' ) ) . '${2}', $canonical);
 			$this->canonical = htmlspecialchars($canonical);
 		}
 
