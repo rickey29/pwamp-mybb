@@ -1,11 +1,11 @@
-PWA+AMP MyBB 1.8
+PWA+AMP MyBB
 ################
-version: 2.3.0
-last updated: Wed., Apr. 15, 2020
+version: 2.4.0
+last updated: Sat., May 01, 2020
 
 Description
 ++++++++++++++++
-Converts MyBB 1.8 into Progressive Web Apps and Accelerated Mobile Pages styles.
+Converts MyBB into Progressive Web Apps and Accelerated Mobile Pages styles.
 
 Highlight
 ++++++++++++++++
@@ -22,37 +22,33 @@ This version is developed based on MyBB version from 1.8.0 to 1.8.22.
 
 Download
 ++++++++++++++++
--- GitHub: https://github.com/rickey29/pwamp-mybb18
--- MyBB Plugins Libraries: https://community.mybb.com/mods.php?action=view&pid=1351
+-- GitHub: https://github.com/rickey29/pwamp-mybb
+-- MyBB Plugins Libraries: https://community.mybb.com/mods.php?action=view&pid=1364
 
 Installation
 ++++++++++++++++
 
 step 0:
 ================
-Assume your MyBB 1.8 web site is located at: "http://yoursite.com".
+Assume your MyBB website is located at: "http://yoursite.com".
 
 step 1:
 ================
-Extract PWA+AMP MyBB 1.8 zip package on your PC, you will get a "pwamp-mybb18" directory.
+Extract PWA+AMP MyBB zip package on your PC, you will get a "pwamp" directory.
 
 step 2:
 ================
-Upload following directory and files from above "pwamp-mybb18" directory
--- languages/english/pwamp.lang.php
--- plugins/pwamp
--- plugins/pwamp.php
+Upload following file and directory within above "pwamp" directory
+-- pwamp.php
+-- pwamp (folder with other files & sub-folders)
 
-to your web site "inc" directory, so you will have follow new directory and files:
--- http://yoursite.com/inc/languages/english/pwamp.lang.php
--- http://yoursite.com/inc/plugins/pwamp
+to your website "/inc/plugins" directory, so you will have follow new file and directory:
 -- http://yoursite.com/inc/plugins/pwamp.php
-
-If your website uses other language than English, you should upload the "pwamp.lang.php" file to your language directory, inside of "english" directory.  And then translate the content of "pwamp.lang.php" into your language.
+-- http://yoursite.com/inc/plugins/pwamp (folder with other files & sub-folders)
 
 step 3:
 ================
-Browse to "Admin Control Panel", select "Plugins" menu under "Configuration" category, click the "Activate" link to install/activate "PWA+AMP MyBB 1.8".
+Browse to Admin Control Panel -> Configuration -> Plugins, find "PWA+AMP MyBB" plugin, click the "Activate" link to activate it.
 
 Configuration
 ++++++++++++++++
@@ -61,6 +57,23 @@ None.
 Upgrade Notice
 ++++++++++++++++
 None.
+
+Uninstallation
+++++++++++++++++
+
+step 0:
+================
+Assume your MyBB website is located at: "http://yoursite.com".
+
+step 1:
+================
+Navigate to Admin Control Panel -> Configuration -> Plugins, find "PWA+AMP MyBB" plugin, click the "Deactivate" link to deactivate it.
+
+step 2:
+================
+If you want to uninstall the plugin permanently, you should delete following file and directory within your website:
+-- http://yoursite.com/inc/plugins/pwamp.php
+-- http://yoursite.com/inc/plugins/pwamp (folder with other files & sub-folders)
 
 Frequently Asked Questions
 ++++++++++++++++
@@ -79,6 +92,9 @@ You can Google to find the solution, for example, this one: https://www.howtogee
 
 History
 ++++++++++++++++
+version 2.4.0 (Sat., May 01, 2020)
+-- code optimization
+
 version 2.3.0 (Wed., Apr. 15, 2020)
 -- improvement: Support more form post functions.
 

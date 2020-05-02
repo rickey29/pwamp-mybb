@@ -27,7 +27,6 @@ class PWAMPTranscoding
 	);
 
 	private $home_url = '';
-	protected $home_url_pattern = '';
 
 	private $page_url = '';
 	private $canonical = '';
@@ -35,7 +34,9 @@ class PWAMPTranscoding
 	private $page_type = '';
 	private $viewport_width = 0;
 	private $plugin_dir_url = '';
-	private $language = array();
+
+	protected $home_url_pattern = '';
+	private $host_url = '';
 
 	private $style = '';
 	private $extened_style = FALSE;
@@ -53,6 +54,35 @@ class PWAMPTranscoding
 	{
 	}
 
+
+	private function update_url($url)
+	{
+		if ( preg_match('/^https?:\/\//im', $url) )
+		{
+			$url = preg_replace('/^http:\/\//im', 'https://', $url);
+		}
+		elseif ( preg_match('/^\/\//im', $url) )
+		{
+			$url = 'https:' . $url;
+		}
+		elseif ( preg_match('/^\//im', $url) )
+		{
+			$url = $this->host_url . $url;
+		}
+		elseif ( preg_match('/^\.\//im', $url) )
+		{
+			$url = preg_replace('/^\.\//im', '', $url);
+			$url = $this->home_url . '/' . $url;
+		}
+		else
+		{
+			$url = $this->home_url . '/' . $url;
+		}
+
+		$url = htmlspecialchars_decode($url);
+
+		return $url;
+	}
 
 	private function get_extened_style()
 	{
@@ -94,7 +124,8 @@ class PWAMPTranscoding
 		$css = preg_replace('/\s*!important\b\s*/i', '', $css);
 		$css = preg_replace('/\s*@charset (("utf-8")|(\'utf-8\'));\s*/i', '', $css);
 		$css = preg_replace('/\s*@((-ms-viewport)|(viewport)){[^}]+}\s*/i', '', $css);
-		$css = preg_replace('/\s*text-rendering:\s*optimizeLegibility;\s*/i', '', $css);
+		$css = preg_replace('/\s*text-rendering:\s*optimizeLegibility;??\s*/iU', '', $css);
+		$css = preg_replace('/\s*\*display:\s*/i', 'display:', $css);
 
 		if ( !empty($id) && preg_match('/{}$/im', $css) )
 		{
@@ -136,8 +167,7 @@ class PWAMPTranscoding
 	public function init($home_url, $data)
 	{
 		$this->home_url = $home_url;
-		$this->home_url_pattern = preg_replace('/^https?:\/\//im', 'https?://', $this->home_url);
-		$this->home_url_pattern = str_replace(array('/', '.'), array('\/', '\.'), $this->home_url_pattern);
+
 
 		if ( !empty($data['page_url']) && is_string($data['page_url']) )
 		{
@@ -180,14 +210,11 @@ class PWAMPTranscoding
 			$this->plugin_dir_url = $data['plugin_dir_url'];
 		}
 
-		if ( !empty($data['language']) && is_array($data['language']) )
-		{
-			$this->language = $data['language'];
-		}
-		elseif ( !empty($data['language']) && is_object($data['language']) )
-		{
-			$this->language = (array)$data['language'];
-		}
+
+		$home_url_pattern = preg_replace('/^https?:\/\//im', 'https?://', $this->home_url);
+		$this->home_url_pattern = str_replace(array('/', '.'), array('\/', '\.'), $home_url_pattern);
+
+		$this->host_url = preg_replace('/^https?:\/\/([^\/]*?)\/??.*$/imU', 'https://${1}', $this->home_url);
 
 
 		$this->style .= $this->get_extened_style();
@@ -205,28 +232,7 @@ class PWAMPTranscoding
 
 		$match = !empty($matches[3]) ? $matches[5] : $matches[9];
 
-		if ( preg_match('/^https?:\/\//im', $match) )
-		{
-			$match = preg_replace('/^http:\/\//im', 'https://', $match);
-		}
-		elseif ( preg_match('/^\/\//im', $match) )
-		{
-			$match = 'https:' . $match;
-		}
-		elseif ( preg_match('/^\//im', $match) )
-		{
-			$host_url = preg_replace('/^https?:\/\/([^\/]*?)\/??.*$/imU', 'https://${1}', $this->home_url);
-			$match = $host_url . $match;
-		}
-		elseif ( preg_match('/^\.\//im', $match) )
-		{
-			$match = preg_replace('/^\.\//im', '', $match);
-			$match = $this->home_url . '/' . $match;
-		}
-		else
-		{
-			$match = $this->home_url . '/' . $match;
-		}
+		$match = $this->update_url($match);
 
 		return '<form' . $matches[1] . ' action=' . $matches[4] . $matches[8] . $match . $matches[6] . $matches[10] . $matches[11] . '>';
 	}
@@ -257,10 +263,11 @@ class PWAMPTranscoding
 			return '';
 		}
 
+		$url = $this->update_url($url);
 		$css = get_remote_data($url);
 
 		$this->url = $url;
-		$css = preg_replace_callback('/url\(((("??)([^"]*?)("??))|((\'??)([^\']*?)(\'??)))\)/iU', array($this, 'url_callback'), $css);
+		$css = preg_replace_callback('/url\(((("??)([^"\'\)]*?)("??))|((\'??)([^"\'\)]*?)(\'??)))\)/iU', array($this, 'url_callback'), $css);
 
 		$this->style .= $css;
 
@@ -316,28 +323,7 @@ class PWAMPTranscoding
 
 		$match = !empty($matches[3]) ? $matches[5] : $matches[9];
 
-		if ( preg_match('/^https?:\/\//im', $match) )
-		{
-			$match = preg_replace('/^http:\/\//im', 'https://', $match);
-		}
-		elseif ( preg_match('/^\/\//im', $match) )
-		{
-			$match = 'https:' . $match;
-		}
-		elseif ( preg_match('/^\//im', $match) )
-		{
-			$host_url = preg_replace('/^https?:\/\/([^\/]*?)\/??.*$/imU', 'https://${1}', $this->home_url);
-			$match = $host_url . $match;
-		}
-		elseif ( preg_match('/^\.\//im', $match) )
-		{
-			$match = preg_replace('/^\.\//im', '', $match);
-			$match = $this->home_url . '/' . $match;
-		}
-		else
-		{
-			$match = $this->home_url . '/' . $match;
-		}
+		$match = $this->update_url($match);
 
 		return '<a' . $matches[1] . ' href=' . $matches[4] . $matches[8] . $match . $matches[6] . $matches[10] . $matches[11] . '>';
 	}
@@ -508,28 +494,7 @@ class PWAMPTranscoding
 			return '<img' . $matches[1] . ' src=' . $matches[4] . $matches[8] . $match . $matches[6] . $matches[10] . $matches[11] . '>';
 		}
 
-		if ( preg_match('/^https?:\/\//im', $match) )
-		{
-			$match = preg_replace('/^http:\/\//im', 'https://', $match);
-		}
-		elseif ( preg_match('/^\/\//im', $match) )
-		{
-			$match = 'https:' . $match;
-		}
-		elseif ( preg_match('/^\//im', $match) )
-		{
-			$host_url = preg_replace('/^https?:\/\/([^\/]*?)\/??.*$/imU', 'https://${1}', $this->home_url);
-			$match = $host_url . $match;
-		}
-		elseif ( preg_match('/^\.\//im', $match) )
-		{
-			$match = preg_replace('/^\.\//im', '', $match);
-			$match = $this->home_url . '/' . $match;
-		}
-		else
-		{
-			$match = $this->home_url . '/' . $match;
-		}
+		$match = $this->update_url($match);
 
 		return '<img' . $matches[1] . ' src=' . $matches[4] . $matches[8] . $match . $matches[6] . $matches[10] . $matches[11] . '>';
 	}
@@ -568,55 +533,59 @@ class PWAMPTranscoding
 
 		if ( preg_match('/^https?:\/\//im', $match) )
 		{
-			$match = preg_replace('/^' . $this->home_url_pattern . '\//im', '', $match);
+			$match = preg_replace('/^http:\/\//im', 'https://', $match);
+		}
+		elseif ( preg_match('/^\/\//im', $match) )
+		{
+			$match = 'https:' . $match;
+		}
+		elseif ( preg_match('/^\//im', $match) )
+		{
+			$match = $this->host_url . $match;
 		}
 		elseif ( preg_match('/^\.\.\/\.\.\/\.\.\/\.\.\//im', $match) )
 		{
-			$url = preg_replace('/^' . $this->home_url_pattern . '\//im', '', $this->url);
-			$url = preg_replace('/[^\/]+\/[^\/]+\/[^\/]+\/[^\/]+\/[^\/]*$/im', '', $url);
+			$url = preg_replace('/[^\/]+\/[^\/]+\/[^\/]+\/[^\/]+\/[^\/]*$/im', '', $this->url);
 
 			$match = preg_replace('/^\.\.\/\.\.\/\.\.\/\.\.\//im', '', $match);
 			$match = $url . $match;
 		}
 		elseif ( preg_match('/^\.\.\/\.\.\/\.\.\//im', $match) )
 		{
-			$url = preg_replace('/^' . $this->home_url_pattern . '\//im', '', $this->url);
-			$url = preg_replace('/[^\/]+\/[^\/]+\/[^\/]+\/[^\/]*$/im', '', $url);
+			$url = preg_replace('/[^\/]+\/[^\/]+\/[^\/]+\/[^\/]*$/im', '', $this->url);
 
 			$match = preg_replace('/^\.\.\/\.\.\/\.\.\//im', '', $match);
 			$match = $url . $match;
 		}
 		elseif ( preg_match('/^\.\.\/\.\.\//im', $match) )
 		{
-			$url = preg_replace('/^' . $this->home_url_pattern . '\//im', '', $this->url);
-			$url = preg_replace('/[^\/]+\/[^\/]+\/[^\/]*$/im', '', $url);
+			$url = preg_replace('/[^\/]+\/[^\/]+\/[^\/]*$/im', '', $this->url);
 
 			$match = preg_replace('/^\.\.\/\.\.\//im', '', $match);
 			$match = $url . $match;
 		}
 		elseif ( preg_match('/^\.\.\//im', $match) )
 		{
-			$url = preg_replace('/^' . $this->home_url_pattern . '\//im', '', $this->url);
-			$url = preg_replace('/[^\/]+\/[^\/]*$/im', '', $url);
+			$url = preg_replace('/[^\/]+\/[^\/]*$/im', '', $this->url);
 
 			$match = preg_replace('/^\.\.\//im', '', $match);
 			$match = $url . $match;
 		}
 		elseif ( preg_match('/^\.\//im', $match) )
 		{
-			$url = preg_replace('/^' . $this->home_url_pattern . '\//im', '', $this->url);
-			$url = preg_replace('/[^\/]*$/im', '', $url);
+			$url = preg_replace('/[^\/]*$/im', '', $this->url);
 
 			$match = preg_replace('/^\.\//im', '', $match);
 			$match = $url . $match;
 		}
 		else
 		{
-			$url = preg_replace('/^' . $this->home_url_pattern . '\//im', '', $this->url);
-			$url = preg_replace('/[^\/]*$/im', '', $url);
+			$url = preg_replace('/[^\/]*$/im', '', $this->url);
 
 			$match = $url . $match;
 		}
+
+		$match = preg_replace('/^' . $this->home_url_pattern . '\//im', '', $match);
 
 		return 'url(' . $matches[3] . $matches[7] . $match . $matches[5] . $matches[9] . ')';
 	}
@@ -863,7 +832,7 @@ class PWAMPTranscoding
 		*/
 		$page = preg_replace('/<img\b([^>]*) src=(("[^"]*")|(\'[^\']*\'))([^>]*) data-lazy-src=(("[^"]*")|(\'[^\']*\'))([^>]*)\s*?\/?>/iU', '<img${1} src=${6}${5}${9} />', $page);
 
-		$page = preg_replace_callback('/<img([^>]*) src=((("??)([^"]*?)("??))|((\'??)([^\']*?)(\'??)))([^>]*)\s*?>/iU', array($this, 'src_callback'), $page);
+		$page = preg_replace_callback('/<img([^>]*) src=(((")([^"]*)("))|((\')([^\']*)(\')))([^>]*)\s*?>/iU', array($this, 'src_callback'), $page);
 
 		// The tag 'img' may only appear as a descendant of tag 'noscript'. Did you mean 'amp-img'?
 		$page = preg_replace_callback('/<img\b([^>]*)\s*?\/?>(<noscript><img\b[^>]*\s*?\/?><\/noscript>)??/iU', array($this, 'img_callback'), $page);
@@ -1095,7 +1064,7 @@ class PWAMPTranscoding
 		$this->body .= "\n" . '<amp-pixel src="' . $this->home_url . '/?pwamp-viewport-width=VIEWPORT_WIDTH" layout="nodisplay"></amp-pixel>';
 
 		// User Notification
-		$this->body .= "\n" . '<amp-user-notification id="pwamp-notification" class="pwamp-notification" data-persist-dismissal="false" layout="nodisplay">' . (!empty($this->language['switch_to']) ? $this->language['switch_to'] : '') . '&nbsp;<a href="' . $this->canonical . '">' . (!empty($this->language['desktop_version']) ? $this->language['desktop_version'] : '') . '</a>&nbsp;&nbsp;<button on="tap:pwamp-notification.dismiss">' . (!empty($this->language['continue']) ? $this->language['continue'] : '') . '</button></amp-user-notification>';
+		$this->body .= "\n" . '<amp-user-notification id="pwamp-notification" class="pwamp-notification" data-persist-dismissal="false" layout="nodisplay">Switch to&nbsp;<a href="' . $this->canonical . '">desktop version</a>&nbsp;&nbsp;<button on="tap:pwamp-notification.dismiss">Continue</button></amp-user-notification>';
 
 		$page = preg_replace('/<body\b([^>]*)\s*?>/iU', '<body${1}>' . "\n" . $this->body, $page, 1);
 
@@ -1103,7 +1072,7 @@ class PWAMPTranscoding
 		$this->style = $this->minicss($this->style);
 
 		$this->style = preg_replace('/@keyframes\b[^{]*({((?:[^{}]+|(?1))*)})/i', '', $this->style);
-		$this->style = preg_replace_callback('/@media\b([^{]*)({((?:[^{}]+|(?2))*)})/i', array($this, 'media_callback'), $this->style);
+		$this->style = preg_replace_callback('/@media\s([^{]*)({((?:[^{}]+|(?2))*)})/i', array($this, 'media_callback'), $this->style);
 		$this->style = preg_replace('/@supports\b[^{]*({((?:[^{}]+|(?1))*)})/i', '', $this->style);
 
 		if ( !$this->extened_style )
@@ -1310,6 +1279,11 @@ class PWAMPTranscoding
 			return '';
 		}
 
+		if ( preg_match('/\bprint\b/i', $match) && !preg_match('/\bscreen\b/i', $match) )
+		{
+			return '';
+		}
+
 
 		if ( preg_match('/min-width:\s?(\d+)px/i', $match, $match3) )
 		{
@@ -1333,7 +1307,7 @@ class PWAMPTranscoding
 		{
 			if ( $this->viewport_width == 0 )
 			{
-				return '@media(' . $match . '){' . $match2 . '}';
+				return '@media ' . $match . '{' . $match2 . '}';
 			}
 			elseif ( $this->viewport_width >= $min_width && $this->viewport_width <= $max_width )
 			{
@@ -1348,7 +1322,7 @@ class PWAMPTranscoding
 		{
 			if ( $this->viewport_width == 0 )
 			{
-				return '@media(' . $match . '){' . $match2 . '}';
+				return '@media ' . $match . '{' . $match2 . '}';
 			}
 			elseif ( $this->viewport_width >= $min_width )
 			{
@@ -1363,7 +1337,7 @@ class PWAMPTranscoding
 		{
 			if ( $this->viewport_width == 0 )
 			{
-				return '@media(' . $match . '){' . $match2 . '}';
+				return '@media ' . $match . '{' . $match2 . '}';
 			}
 			elseif ( $this->viewport_width <= $max_width )
 			{
@@ -1376,7 +1350,7 @@ class PWAMPTranscoding
 		}
 		else
 		{
-			return '';
+			return '@media ' . $match . '{' . $match2 . '}';
 		}
 	}
 }
